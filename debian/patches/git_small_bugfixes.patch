@@ -1,0 +1,58 @@
+diff --git a/server/vino-upnp.c b/server/vino-upnp.c
+index fcccfc7..99d7a71 100644
+--- a/server/vino-server.c
++++ b/server/vino-server.c
+@@ -294,7 +294,7 @@ static void
+ vino_background_draw (gboolean status)
+ {
+   static GSettings *background_settings;
+-  gsize initialised;
++  static gsize initialised;
+ 
+   if (g_once_init_enter (&initialised))
+     {
+-- 
+--- a/server/vino-main.c
++++ b/server/vino-main.c
+@@ -252,6 +252,11 @@ main (int argc, char **argv)
+       { NULL }
+     };
+ 
++    /* Call this before parsing options, as that triggers creation of an SM
++     * client. Creating the client in a disabled state, and then switching to
++     * the real state later, avoids a critical warning on startup. */
++    egg_sm_client_set_mode (EGG_SM_CLIENT_MODE_DISABLED);
++
+     context = g_option_context_new (_("- VNC Server for GNOME"));
+     g_option_context_add_group (context, gtk_get_option_group (TRUE));
+     g_option_context_add_group (context, egg_sm_client_get_option_group ());
+--- a/server/libvncserver/rfbserver.c
++++ b/server/libvncserver/rfbserver.c
+@@ -150,7 +150,7 @@ rfbNewClient(rfbScreenInfoPtr rfbScreen,
+     struct sockaddr_storage addr;
+     socklen_t addrlen = sizeof(addr);
+     int i;
+-    char host[NI_MAXHOST];
++    char host[NI_MAXHOST] = "(unresolved)";
+     const char *prt = "unknown";
+ 
+     cl = (rfbClientPtr)calloc(sizeof(rfbClientRec),1);
+@@ -166,11 +166,11 @@ rfbNewClient(rfbScreenInfoPtr rfbScreen,
+ 
+       getpeername(sock, (struct sockaddr *)&addr, &addrlen);
+ 
+-      getnameinfo((struct sockaddr *)&addr,
+-                  addrlen,
+-                  host, sizeof(host),
+-                  NULL, 0,
+-                  0);
++      if (getnameinfo((struct sockaddr *)&addr, addrlen,
++                      host, sizeof(host), NULL, 0, 0)) {
++        getnameinfo((struct sockaddr *)&addr, addrlen,
++                    host, sizeof(host), NULL, 0, NI_NUMERICHOST);
++      }
+ 
+       cl->host = strdup(host);
+ 
+
+

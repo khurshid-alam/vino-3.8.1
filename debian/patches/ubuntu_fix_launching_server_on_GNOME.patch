@@ -1,0 +1,87 @@
+Description: Fixes vino launching problems under GNOME
+   * Fixes the bug with vino not launching when starting user sharing under
+     GNOME due to its reliance on enabled keys.
+Author: Robert Hoenig <indielives010@gmail.com>
+
+---
+Bug: https://bugs.launchpad.net/ubuntu/+source/vino/+bug/1518813
+Last-Update: <2016-01-10>
+
+Index: vino-3.8.1/server/vino-main.c
+===================================================================
+--- vino-3.8.1.orig/server/vino-main.c
++++ vino-3.8.1/server/vino-main.c
+@@ -78,7 +78,7 @@ typedef enum
+ static RunMode
+ get_run_mode (VinoApplication *vino)
+ {
+-  if (g_settings_get_boolean (vino->settings, "enabled"))
++  if (g_settings_get_boolean (vino->settings, "enabled") || vino_get_desktop_session_is_gnome())
+     return RUN_MODE_ALL;
+ 
+ #ifdef VINO_HAVE_TELEPATHY_GLIB
+@@ -255,7 +255,7 @@ name_acquired (GDBusConnection *connecti
+       vino_server_set_on_hold (server, FALSE);
+       vino_server_set_reject_incoming (server, reject);
+ 
+-      if (g_settings_get_boolean (vino->settings, "enabled"))
++      if (g_settings_get_boolean (vino->settings, "enabled") || vino_get_desktop_session_is_gnome())
+         {
+           vino_mdns_start(vino_server_get_network_interface (server));
+         }
+Index: vino-3.8.1/server/vino-prefs.c
+===================================================================
+--- vino-3.8.1.orig/server/vino-prefs.c
++++ vino-3.8.1/server/vino-prefs.c
+@@ -133,7 +133,7 @@ vino_prefs_sighandler (int sig)
+ static void
+ notify_enabled (void)
+ {
+-  if (!g_settings_get_boolean (settings, "enabled"))
++  if (!g_settings_get_boolean (settings, "enabled") && !vino_get_desktop_session_is_gnome())
+     {
+       g_message ("The desktop sharing service is disabled, exiting.");
+       exit (0);
+Index: vino-3.8.1/server/vino-util.c
+===================================================================
+--- vino-3.8.1.orig/server/vino-util.c
++++ vino-3.8.1/server/vino-util.c
+@@ -237,3 +237,12 @@ vino_util_get_local_hostname (const gcha
+ 
+   return retval;
+ }
++
++gboolean
++vino_get_desktop_session_is_gnome (void)
++{
++       const char *session;
++       session = g_getenv ("XDG_CURRENT_DESKTOP");
++
++       return session && strstr (session, "GNOME");
++}
+Index: vino-3.8.1/server/vino-util.h
+===================================================================
+--- vino-3.8.1.orig/server/vino-util.h
++++ vino-3.8.1/server/vino-util.h
+@@ -87,6 +87,8 @@ void  vino_util_show_error	(const gchar
+ 
+ gchar *vino_util_get_local_hostname (const gchar *server_iface);
+ 
++gboolean vino_get_desktop_session_is_gnome (void);
++
+ 
+ G_END_DECLS
+ 
+Index: vino-3.8.1/server/vino-server.desktop.in.in
+===================================================================
+--- vino-3.8.1.orig/server/vino-server.desktop.in.in
++++ vino-3.8.1/server/vino-server.desktop.in.in
+@@ -5,7 +5,7 @@ _Keywords=vnc;share;remote;
+ NoDisplay=true
+ Exec=@LIBEXECDIR@/vino-server --sm-disable
+ Icon=preferences-desktop-remote-desktop
+-OnlyShowIn=GNOME;Unity;
++OnlyShowIn=Unity;
+ Terminal=false
+ Type=Application
+ AutostartCondition=GSettings org.gnome.Vino enabled
