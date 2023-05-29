@@ -21,10 +21,10 @@ DEB_CONFIGURE_EXTRA_FLAGS +=	\
 	--enable-appindicator
 
 # Request NetworkManager support only for Linux
-ifeq ($(DEB_HOST_ARCH_OS),linux)
-DEB_CONFIGURE_EXTRA_FLAGS +=    \
-	--with-network-manager
-endif
+#ifeq ($(DEB_HOST_ARCH_OS),linux)
+#DEB_CONFIGURE_EXTRA_FLAGS +=    \
+#	--with-network-manager
+#endif
 
 # drop unneeded ELF deps
 LDFLAGS += -Wl,-z,defs -Wl,-O1 -Wl,--as-needed
