@@ -83,7 +83,7 @@ update_upnp_status (VinoUpnp *upnp)
   clean_upnp_data (upnp);
 
   dprintf (UPNP, "UPnP: Doing the discovery... ");
-  devlist = upnpDiscover (2000, NULL, NULL, 0, 0, &upnperror);
+  devlist = upnpDiscover (2000, NULL, NULL, 0, 0, 2, &upnperror);
   if (!devlist)
     {
       dprintf (UPNP, "nothing found, aborting.");
